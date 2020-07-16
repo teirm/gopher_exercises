@@ -1,2 +1,2 @@
 # gopher_exercises
-Praciting Go with gophercises
+Practicing Go with gophercises
