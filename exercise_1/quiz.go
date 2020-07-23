@@ -13,9 +13,15 @@ import (
 // If the user answers correctly, true is returned.
 // Otherwise the function returns false
 func askQuestion(question *string, answer int) bool {
+	var response int
+
 	fmt.Printf("%s\n", *question)
-	//TODO(teirm) how do I take user input in again?
-	return true
+	_, err := fmt.Scanf("%d", &response)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failure to read input: %v\n", err)
+		os.Exit(1)
+	}
+	return (response == answer)
 }
 
 func main() {
@@ -39,7 +45,8 @@ func main() {
 	csvReader := csv.NewReader(file)
 	records, read_err := csvReader.ReadAll()
 	if read_err != nil {
-		fmt.Print(read_err)
+		fmt.Fprintf(os.Stderr, "%v", read_err)
+		os.Exit(1)
 	}
 
 	// print out each record
