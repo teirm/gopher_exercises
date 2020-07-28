@@ -28,7 +28,7 @@ func askQuestion(question *string, answer int) bool {
 func main() {
 	// allow the user to specify the file name for the quiz
 	var fileName = flag.String("filename", "", "File name for quiz")
-	var timeOut = flag.Int64("timeout", 30, "Timeout for the quiz")
+	var timeOut = flag.Int64("timeout", 30, "Timeout for quiz")
 	flag.Parse()
 
 	// report an error if no quiz file is specified
@@ -40,14 +40,15 @@ func main() {
 	// open the file name specified
 	file, err := os.Open(*fileName)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Fprintf(os.Stderr, "Failure to open filename '%s': %v\n", *fileName, err)
+		os.Exit(1)
 	}
 
 	// read the file in as a default csv file
 	csvReader := csv.NewReader(file)
-	records, read_err := csvReader.ReadAll()
-	if read_err != nil {
-		fmt.Fprintf(os.Stderr, "%v", read_err)
+	records, readErr := csvReader.ReadAll()
+	if readErr != nil {
+		fmt.Fprintf(os.Stderr, "%v", readErr)
 		os.Exit(1)
 	}
 
@@ -63,7 +64,7 @@ func main() {
 			question := &record[0]
 			answer, err := strconv.Atoi(record[1])
 			if err != nil {
-				fmt.Print(err)
+				fmt.Fprintf(os.Stderr, "Failure to convert record value '%s' to int: %v\n", record[1], err)
 				os.Exit(1)
 			}
 			response <- askQuestion(question, answer)
@@ -78,6 +79,7 @@ loop:
 	for {
 		select {
 		case <-time.After(time.Duration(*timeOut) * time.Second):
+			fmt.Println("TIMES UP")
 			break loop
 		case ans := <-response:
 			if ans == true {
@@ -90,5 +92,5 @@ loop:
 			}
 		}
 	}
-	fmt.Printf("Quiz results: %v correct %v incorrect\n", correct, incorrect)
+	fmt.Printf("Quiz results (out of %v): %v correct %v incorrect\n", len(records), correct, incorrect)
 }
