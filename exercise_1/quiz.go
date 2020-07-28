@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 // Asks a question with an integer  answer
@@ -27,6 +28,7 @@ func askQuestion(question *string, answer int) bool {
 func main() {
 	// allow the user to specify the file name for the quiz
 	var fileName = flag.String("filename", "", "File name for quiz")
+	var timeOut = flag.Int64("timeout", 30, "Timeout for the quiz")
 	flag.Parse()
 
 	// report an error if no quiz file is specified
@@ -50,25 +52,42 @@ func main() {
 	}
 
 	// print out each record
-	var isCorrect bool
-	var correct int
-	var incorrect int
-	for _, record := range records {
-		if len(record) != 2 {
-			fmt.Fprintf(os.Stderr, "Bad question: %v\n", record)
-			continue
+	response := make(chan bool)
+
+	go func() {
+		for _, record := range records {
+			if len(record) != 2 {
+				fmt.Fprintf(os.Stderr, "Bad question: %v\n", record)
+				continue
+			}
+			question := &record[0]
+			answer, err := strconv.Atoi(record[1])
+			if err != nil {
+				fmt.Print(err)
+				os.Exit(1)
+			}
+			response <- askQuestion(question, answer)
 		}
-		question := &record[0]
-		answer, err := strconv.Atoi(record[1])
-		if err != nil {
-			fmt.Print(err)
-			os.Exit(1)
-		}
-		isCorrect = askQuestion(question, answer)
-		if isCorrect {
-			correct++
-		} else {
-			incorrect++
+	}()
+
+	correct := 0
+	incorrect := len(records)
+	questions := len(records)
+
+loop:
+	for {
+		select {
+		case <-time.After(time.Duration(*timeOut) * time.Second):
+			break loop
+		case ans := <-response:
+			if ans == true {
+				correct++
+				incorrect--
+			}
+			questions--
+			if questions == 0 {
+				break loop
+			}
 		}
 	}
 	fmt.Printf("Quiz results: %v correct %v incorrect\n", correct, incorrect)
