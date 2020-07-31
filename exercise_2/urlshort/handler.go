@@ -1,7 +1,10 @@
 package urlshort
 
 import (
+	"fmt"
 	"net/http"
+
+	"gopkg.in/yaml.v2"
 )
 
 // MapHandler will return an http.HandlerFunc (which also
@@ -20,6 +23,20 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 			http.Redirect(w, r, redirect, 307)
 		}
 	}
+}
+
+type T struct {
+	A string `yaml:"path"`
+	B string `yaml:"url"`
+}
+
+// Parse a byte stream
+func parseYaml(yml []byte) []T, error {
+	entry := []T{}
+	if err := yaml.Unmarshal(yml, &entry); err != nil {
+		return err
+	}
+	return entry, nil
 }
 
 // YAMLHandler will parse the provided YAML and then return
