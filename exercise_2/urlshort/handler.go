@@ -1,7 +1,6 @@
 package urlshort
 
 import (
-	"fmt"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
@@ -25,18 +24,30 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 	}
 }
 
-type T struct {
-	A string `yaml:"path"`
-	B string `yaml:"url"`
+type Entry struct {
+	Path string `yaml:"path"`
+	Url  string `yaml:"url"`
 }
 
-// Parse a byte stream
-func parseYaml(yml []byte) []T, error {
-	entry := []T{}
-	if err := yaml.Unmarshal(yml, &entry); err != nil {
-		return err
+// Parse a byte array representing a yaml file
+// return an array of structs or an error
+func parseYaml(yml []byte) ([]Entry, error) {
+	entries := []Entry{}
+	if err := yaml.Unmarshal(yml, &entries); err != nil {
+		return nil, err
 	}
-	return entry, nil
+	return entries, nil
+}
+
+// Convert an array of Entry type structs into
+// a mapping
+func buildMap(entries []Entry) map[string]string {
+	pathMap := make(map[string]string)
+
+	for _, entry := range entries {
+		pathMap[entry.Path] = entry.Url
+	}
+	return pathMap
 }
 
 // YAMLHandler will parse the provided YAML and then return
@@ -56,6 +67,10 @@ func parseYaml(yml []byte) []T, error {
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	// TODO: Implement this...
-	return nil, nil
+	entries, err := parseYaml(yml)
+	if err != nil {
+		return nil, err
+	}
+	pathMap := buildMap(entries)
+	return MapHandler(pathMap, fallback), nil
 }
